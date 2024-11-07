@@ -14,7 +14,10 @@ import org.springframework.data.domain.Sort;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -83,7 +86,7 @@ public class CryptoServiceTest {
     void testGetCryptoStatistics_validSymbol() {
         String symbol = "BTC";
         List<CryptoPrice> prices = List.of(
-                new CryptoPrice(null, symbol,  45000.0, Instant.now().minusSeconds(3600)),
+                new CryptoPrice(null, symbol, 45000.0, Instant.now().minusSeconds(3600)),
                 new CryptoPrice(null, symbol, 50000.0, Instant.now())
         );
 
