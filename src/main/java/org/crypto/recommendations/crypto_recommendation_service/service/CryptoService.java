@@ -34,19 +34,17 @@ public class CryptoService {
     }
 
     @Transactional
-    public void loadCryptoData(String symbol) throws IllegalArgumentException, FileNotFoundException {
+    public void loadCryptoData(String symbol) {
         String fileName = cryptoConfig.getSymbols().get(symbol);
 
         if (fileName == null) {
-            throw new IllegalArgumentException("Invalid cryptocurrency symbol: " + symbol + ". Valid symbols are: " + String.join(", ", cryptoConfig.getSymbols().keySet()));
+            throw new IllegalArgumentException("Invalid cryptocurrency symbol: " + symbol);
         }
 
         List<CryptoPrice> prices = csvLoader.loadPricesFromCSV(fileName);
-        if (prices == null || prices.isEmpty()) {
-            throw new FileNotFoundException("CSV file for the symbol " + symbol + " not found.");
-        }
         cryptoPriceRepository.saveAll(prices);
     }
+
 
     public Map<String, Double> getCryptoStatistics(String symbol) {
         List<CryptoPrice> prices = cryptoPriceRepository.findBySymbol(symbol, Sort.by(Sort.Direction.ASC, "timestamp"));
@@ -85,16 +83,24 @@ public class CryptoService {
             Instant start = localDate.atStartOfDay(ZoneOffset.UTC).toInstant();
             Instant end = start.plus(1, ChronoUnit.DAYS);
 
-            return cryptoPriceRepository.findByTimestampBetween(start, end, Sort.by(Sort.Direction.DESC, "price")).stream()
+            List<CryptoPrice> dailyPrices = cryptoPriceRepository.findByTimestampBetween(start, end);
+            if (dailyPrices.isEmpty()) {
+                throw new IllegalArgumentException("No data available for the given date: " + date);
+            }
+
+            return dailyPrices.stream()
                     .collect(Collectors.groupingBy(CryptoPrice::getSymbol, Collectors.summarizingDouble(CryptoPrice::getPrice)))
                     .entrySet().stream()
-                    .max(Comparator.comparingDouble(e -> (e.getValue().getMax() - e.getValue().getMin()) / e.getValue().getMin()))
+                    .filter(entry -> entry.getValue().getMin() > 0) // Prevent division by zero
+                    .max(Comparator.comparingDouble(entry -> (entry.getValue().getMax() - entry.getValue().getMin()) / entry.getValue().getMin()))
                     .map(Map.Entry::getKey)
                     .orElse(null);
+
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Invalid date format. Expected format: yyyy-MM-dd.", e);
         }
     }
+
 
     private double calculateNormalizedRange(String symbol) {
         List<CryptoPrice> prices = cryptoPriceRepository.findBySymbol(symbol, Sort.by(Sort.Direction.ASC, "timestamp"));
