@@ -1,11 +1,14 @@
 package org.crypto.recommendations.crypto_recommendation_service.service;
 
+import org.crypto.recommendations.crypto_recommendation_service.config.CryptoConfig;
 import org.crypto.recommendations.crypto_recommendation_service.model.CryptoPrice;
 import org.crypto.recommendations.crypto_recommendation_service.repository.CryptoPriceRepository;
 import org.crypto.recommendations.crypto_recommendation_service.util.CSVLoader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.io.FileNotFoundException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -19,14 +22,34 @@ import java.util.stream.Collectors;
 @Service
 public class CryptoService {
 
-    @Autowired
+
+    private CryptoConfig cryptoConfig;
+
     private CryptoPriceRepository cryptoPriceRepository;
 
-    @Autowired
     private CSVLoader csvLoader;
 
-    public void loadCryptoData(String symbol) {
-        List<CryptoPrice> prices = csvLoader.loadPricesFromCSV(symbol);
+    @Autowired
+    public CryptoService(CryptoConfig cryptoConfig, CryptoPriceRepository cryptoPriceRepository, CSVLoader csvLoader) {
+        this.cryptoConfig = cryptoConfig;
+        this.cryptoPriceRepository = cryptoPriceRepository;
+        this.csvLoader = csvLoader;
+    }
+
+    @Transactional
+    public void loadCryptoData(String symbol) throws IllegalArgumentException, FileNotFoundException {
+        // Dynamically get the valid symbol from the config
+        String fileName = cryptoConfig.getSymbols().get(symbol);
+
+        if (fileName == null) {
+            throw new IllegalArgumentException("Invalid cryptocurrency symbol: " + symbol + ". Valid symbols are: " + String.join(", ", cryptoConfig.getSymbols().keySet()));
+        }
+
+        // Load data from CSV using the file name mapped to the symbol
+        List<CryptoPrice> prices = csvLoader.loadPricesFromCSV(fileName);
+        if (prices == null || prices.isEmpty()) {
+            throw new FileNotFoundException("CSV file for the symbol " + symbol + " not found.");
+        }
         cryptoPriceRepository.saveAll(prices);
     }
 

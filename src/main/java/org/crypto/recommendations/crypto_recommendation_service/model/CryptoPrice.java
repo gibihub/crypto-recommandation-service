@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 @Entity
-@Table(name = "cryptos")
+@Table(name = "CRYPTO_PRICES")
 @Getter
 @Setter
 @ToString
@@ -19,9 +19,14 @@ public class CryptoPrice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Instant timestamp;
+    @Column(nullable = false)
     private String symbol;
-    private double price;
+
+    @Column(nullable = false)
+    private Double price;
+
+    @Column(nullable = false)
+    private Instant timestamp;
 
     @Override
     public final boolean equals(Object o) {

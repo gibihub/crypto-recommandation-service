@@ -13,7 +13,7 @@ import java.util.List;
 @Component
 public class CSVLoader {
 
-    public List<org.crypto.recommendations.crypto_recommendation_service.model.CryptoPrice> loadPricesFromCSV(String symbol) {
+    public List<CryptoPrice> loadPricesFromCSV(String symbol) {
         List<CryptoPrice> prices = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
                 getClass().getClassLoader().getResourceAsStream("data/" + symbol + "_values.csv")))) {
