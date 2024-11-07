@@ -68,17 +68,13 @@ public class CryptoServiceTest {
     void testLoadCryptoData_illegalArgumentException() {
         String invalidSymbol = "INVALID";
 
-        // Mock the CryptoConfig to return an empty map or a map that doesn't contain the invalidSymbol
         when(cryptoConfig.getSymbols()).thenReturn(Map.of("BTC", "BTC_values.csv", "ETH", "eth.csv"));
 
-        // Expect IllegalArgumentException when the invalid symbol is passed
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                 cryptoService.loadCryptoData(invalidSymbol));
 
-        // Verify the exception message
         assertEquals("Invalid cryptocurrency symbol: " + invalidSymbol, exception.getMessage());
 
-        // Verify that no interactions with the repository occurred
         verify(cryptoPriceRepository, never()).saveAll(any());
     }
 

@@ -24,7 +24,7 @@ public interface CryptoPriceRepository extends JpaRepository<CryptoPrice, Long> 
     List<CryptoPrice> findByTimestampBetween(Instant start, Instant end);
 
     // Custom query to find latest price by symbol, using Optional for null-safe handling
-    @Query("SELECT cp FROM CryptoPrice cp WHERE cp.symbol = :symbol ORDER BY cp.timestamp DESC")
+    @Query("SELECT cp FROM CryptoPrice cp WHERE cp.symbol = :symbol AND cp.timestamp = (SELECT MAX(cp2.timestamp) FROM CryptoPrice cp2 WHERE cp2.symbol = :symbol)")
     Optional<CryptoPrice> findLatestBySymbol(String symbol);
 
     // Custom query for average price within a given time range for a specific symbol
