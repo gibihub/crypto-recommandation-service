@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crypto-recommendation-service
+spec:
+  replicas: 1  # Adjust the number of replicas as needed
+  selector:
+    matchLabels:
+      app: crypto-recommendation-service
+  template:
+    metadata:
+      labels:
+        app: crypto-recommendation-service
+    spec:
+      containers:
+        - name: crypto-recommendation-service
+          image: crypto-recommendation-service:latest  # Replace this with your actual Docker image name
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              # value: "prod"  # Optionally specify the Spring profile (prod, dev, etc.)
