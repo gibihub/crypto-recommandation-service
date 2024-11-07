@@ -21,6 +21,7 @@ public interface CryptoPriceRepository extends JpaRepository<CryptoPrice, Long> 
     // Find by timestamp range with sorting and pagination for optimized queries
     List<CryptoPrice> findByTimestampBetween(Instant start, Instant end, Pageable pageable);
     List<CryptoPrice> findByTimestampBetween(Instant start, Instant end, Sort sort);
+    List<CryptoPrice> findByTimestampBetween(Instant start, Instant end);
 
     // Custom query to find latest price by symbol, using Optional for null-safe handling
     @Query("SELECT cp FROM CryptoPrice cp WHERE cp.symbol = :symbol ORDER BY cp.timestamp DESC")

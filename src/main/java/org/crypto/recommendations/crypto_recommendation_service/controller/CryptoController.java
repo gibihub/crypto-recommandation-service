@@ -73,9 +73,6 @@ public class CryptoController {
         } catch (IllegalArgumentException e) {
             // Return bad request if symbol is invalid
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (FileNotFoundException e) {
-            // Return not found if CSV file is missing
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             // Return internal server error for any other issues
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to load crypto data: " + e.getMessage());

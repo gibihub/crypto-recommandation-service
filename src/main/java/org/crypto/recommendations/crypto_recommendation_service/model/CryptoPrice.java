@@ -12,7 +12,6 @@ import java.util.Objects;
 @Getter
 @Setter
 @ToString
-@RequiredArgsConstructor
 public class CryptoPrice {
 
     @Id
@@ -27,6 +26,15 @@ public class CryptoPrice {
 
     @Column(nullable = false)
     private Instant timestamp;
+
+    public CryptoPrice(Long id, String symbol, Double price, Instant timestamp) {
+        this.id = id;
+        this.symbol = symbol;
+        this.price = price;
+        this.timestamp = timestamp;
+    }
+
+    public CryptoPrice() {};
 
     @Override
     public final boolean equals(Object o) {
