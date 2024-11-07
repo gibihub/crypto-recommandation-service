@@ -5,6 +5,7 @@ import org.crypto.recommendations.crypto_recommendation_service.model.CryptoPric
 import org.crypto.recommendations.crypto_recommendation_service.repository.CryptoPriceRepository;
 import org.crypto.recommendations.crypto_recommendation_service.util.CSVLoader;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,18 +16,14 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class CryptoService {
+
     private final CryptoConfig cryptoConfig;
-
     private final CryptoPriceRepository cryptoPriceRepository;
-
     private final CSVLoader csvLoader;
 
     @Autowired
@@ -38,14 +35,12 @@ public class CryptoService {
 
     @Transactional
     public void loadCryptoData(String symbol) throws IllegalArgumentException, FileNotFoundException {
-        // Dynamically get the valid symbol from the config
         String fileName = cryptoConfig.getSymbols().get(symbol);
 
         if (fileName == null) {
             throw new IllegalArgumentException("Invalid cryptocurrency symbol: " + symbol + ". Valid symbols are: " + String.join(", ", cryptoConfig.getSymbols().keySet()));
         }
 
-        // Load data from CSV using the file name mapped to the symbol
         List<CryptoPrice> prices = csvLoader.loadPricesFromCSV(fileName);
         if (prices == null || prices.isEmpty()) {
             throw new FileNotFoundException("CSV file for the symbol " + symbol + " not found.");
@@ -54,7 +49,8 @@ public class CryptoService {
     }
 
     public Map<String, Double> getCryptoStatistics(String symbol) {
-        List<CryptoPrice> prices = cryptoPriceRepository.findBySymbol(symbol);
+        List<CryptoPrice> prices = cryptoPriceRepository.findBySymbol(symbol, Sort.by(Sort.Direction.ASC, "timestamp"));
+
         double min = prices.stream().mapToDouble(CryptoPrice::getPrice).min().orElse(0);
         double max = prices.stream().mapToDouble(CryptoPrice::getPrice).max().orElse(0);
         Instant oldest = prices.stream().map(CryptoPrice::getTimestamp).min(Instant::compareTo).orElse(null);
@@ -82,32 +78,26 @@ public class CryptoService {
     }
 
     public String getCryptoWithHighestRangeForDay(String date) {
-        // Define the expected date format (e.g., "yyyy-MM-dd" for input like "2024-11-07")
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         try {
-            // Parse the input date string to LocalDate
             LocalDate localDate = LocalDate.parse(date, formatter);
-
-            // Get start and end of the day in UTC
             Instant start = localDate.atStartOfDay(ZoneOffset.UTC).toInstant();
             Instant end = start.plus(1, ChronoUnit.DAYS);
 
-            // Find the symbol with the highest price range for the given day
-            return cryptoPriceRepository.findByTimestampBetween(start, end).stream()
+            return cryptoPriceRepository.findByTimestampBetween(start, end, Sort.by(Sort.Direction.DESC, "price")).stream()
                     .collect(Collectors.groupingBy(CryptoPrice::getSymbol, Collectors.summarizingDouble(CryptoPrice::getPrice)))
                     .entrySet().stream()
                     .max(Comparator.comparingDouble(e -> (e.getValue().getMax() - e.getValue().getMin()) / e.getValue().getMin()))
                     .map(Map.Entry::getKey)
                     .orElse(null);
         } catch (DateTimeParseException e) {
-            // Handle incorrect date format gracefully
             throw new IllegalArgumentException("Invalid date format. Expected format: yyyy-MM-dd.", e);
         }
     }
 
     private double calculateNormalizedRange(String symbol) {
-        List<CryptoPrice> prices = cryptoPriceRepository.findBySymbol(symbol);
+        List<CryptoPrice> prices = cryptoPriceRepository.findBySymbol(symbol, Sort.by(Sort.Direction.ASC, "timestamp"));
         if (prices.isEmpty()) return 0;
 
         double min = prices.stream().mapToDouble(CryptoPrice::getPrice).min().orElse(0);

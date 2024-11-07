@@ -9,6 +9,7 @@ import org.crypto.recommendations.crypto_recommendation_service.service.CryptoSe
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.FileNotFoundException;
@@ -55,6 +56,7 @@ public class CryptoController {
         return cryptoService.getCryptoWithHighestRangeForDay(date);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/load-data/{symbol}")
     @Operation(summary = "Load crypto data for a specific symbol into the database", description = "This endpoint loads cryptocurrency data for a specific symbol from a CSV file into the database.")
     @ApiResponses(value = {
