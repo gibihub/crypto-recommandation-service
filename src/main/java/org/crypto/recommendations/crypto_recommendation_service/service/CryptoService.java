@@ -12,6 +12,8 @@ import java.io.FileNotFoundException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -21,13 +23,11 @@ import java.util.stream.Collectors;
 
 @Service
 public class CryptoService {
+    private final CryptoConfig cryptoConfig;
 
+    private final CryptoPriceRepository cryptoPriceRepository;
 
-    private CryptoConfig cryptoConfig;
-
-    private CryptoPriceRepository cryptoPriceRepository;
-
-    private CSVLoader csvLoader;
+    private final CSVLoader csvLoader;
 
     @Autowired
     public CryptoService(CryptoConfig cryptoConfig, CryptoPriceRepository cryptoPriceRepository, CSVLoader csvLoader) {
@@ -82,20 +82,28 @@ public class CryptoService {
     }
 
     public String getCryptoWithHighestRangeForDay(String date) {
-        // Convert Instant to LocalDate at UTC
-        Instant day = Instant.parse(date);
-        LocalDate localDate = day.atZone(ZoneOffset.UTC).toLocalDate();
+        // Define the expected date format (e.g., "yyyy-MM-dd" for input like "2024-11-07")
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-        // Get start and end of the day
-        Instant start = localDate.atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant end = start.plus(1, ChronoUnit.DAYS);
+        try {
+            // Parse the input date string to LocalDate
+            LocalDate localDate = LocalDate.parse(date, formatter);
 
-        return cryptoPriceRepository.findByTimestampBetween(start, end).stream()
-                .collect(Collectors.groupingBy(CryptoPrice::getSymbol, Collectors.summarizingDouble(CryptoPrice::getPrice)))
-                .entrySet().stream()
-                .max(Comparator.comparingDouble(e -> (e.getValue().getMax() - e.getValue().getMin()) / e.getValue().getMin()))
-                .map(Map.Entry::getKey)
-                .orElse(null);
+            // Get start and end of the day in UTC
+            Instant start = localDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+            Instant end = start.plus(1, ChronoUnit.DAYS);
+
+            // Find the symbol with the highest price range for the given day
+            return cryptoPriceRepository.findByTimestampBetween(start, end).stream()
+                    .collect(Collectors.groupingBy(CryptoPrice::getSymbol, Collectors.summarizingDouble(CryptoPrice::getPrice)))
+                    .entrySet().stream()
+                    .max(Comparator.comparingDouble(e -> (e.getValue().getMax() - e.getValue().getMin()) / e.getValue().getMin()))
+                    .map(Map.Entry::getKey)
+                    .orElse(null);
+        } catch (DateTimeParseException e) {
+            // Handle incorrect date format gracefully
+            throw new IllegalArgumentException("Invalid date format. Expected format: yyyy-MM-dd.", e);
+        }
     }
 
     private double calculateNormalizedRange(String symbol) {
